@@ -1,0 +1,8 @@
+python-telegram-bot
+torch
+torchvision
+scikit-image
+sklearn
+pandas
+numpy
+telegram
