@@ -13,7 +13,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 from ae_model import Autoencoder
-from get_dataset import load_images
+from dataset import load_images
 
 logger = logging.getLogger(__name__)
 
