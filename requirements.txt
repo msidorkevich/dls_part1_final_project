@@ -1,7 +1,8 @@
-python-telegram-bot
-torch
-torchvision
-scikit-image
-sklearn
-numpy
-telegram
+--find-links https://download.pytorch.org/whl/torch_stable.html
+
+python-telegram-bot==13.2
+torch==1.7.1+cpu -f https://download.pytorch.org/whl/torch_stable.html
+torchvision==0.8.2+cpu -f https://download.pytorch.org/whl/torch_stable.html
+scikit-image==0.18.1
+scikit-learn==0.24.1
+numpy==1.20.0
