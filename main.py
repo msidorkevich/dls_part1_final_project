@@ -13,7 +13,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 from ae_model import Autoencoder
-from get_dataset import fetch_dataset
+from get_dataset import load_images
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ knn = None
 dataset = None
 
 number_of_similar_images = 5
+to_tensor = torchvision.transforms.ToTensor()
 
 
 # Define a few command handlers. These usually take the two arguments update and
@@ -45,7 +46,6 @@ def handle_photo(update: Update, context: CallbackContext) -> None:
     image_file = context.bot.getFile(file_id)
     image_raw = imread(image_file.file_path)
     image_raw = resize(image_raw, [48, 48])
-    to_tensor = torchvision.transforms.ToTensor()
     image = to_tensor(image_raw).float()
     image = image.unsqueeze(dim=0)
     latent = ae_model.encode(image)
@@ -60,7 +60,6 @@ def handle_photo(update: Update, context: CallbackContext) -> None:
         similar_images.append(neighbour_image)
 
     merged_image = np.concatenate(similar_images, axis=1)
-    merged_image = (merged_image * 255).astype('uint8')
 
     temp_file_name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)) + ".jpeg"
     imsave(temp_file_name, merged_image)
@@ -84,7 +83,7 @@ def main():
 
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(MessageHandler(Filters.all & ~Filters.command, handle_photo))
+    dispatcher.add_handler(MessageHandler(Filters.photo & ~Filters.command, handle_photo))
 
     updater.start_polling()
     updater.idle()
@@ -93,7 +92,7 @@ def main():
 def load_dataset():
     logging.info("Loading dataset")
     global dataset
-    dataset = fetch_dataset()
+    dataset = load_images()
 
 
 def load_model():
