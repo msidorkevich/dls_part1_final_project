@@ -39,7 +39,7 @@ def help_command(update: Update) -> None:
 
 def handle_photo(update: Update, context: CallbackContext) -> None:
     """Echo the user message."""
-    print("Photo received")
+    logging.info("Photo received")
     file_id = update.message.photo[-1].file_id
 
     image_file = context.bot.getFile(file_id)
@@ -71,43 +71,33 @@ def handle_photo(update: Update, context: CallbackContext) -> None:
 
 
 def main():
+    logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
     load_model()
     load_dataset()
     train_knn()
 
-    print("Preparation done, starting Telegram bot")
+    logging.info("Preparation done, starting Telegram bot")
 
-    """Start the bot."""
-    # Create the Updater and pass it your bot's token.
     updater = Updater("1548635155:AAHcArsfr_KDFW1Fj00r5elM61ARtSqvYog")
-
-    # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
 
-    # on different commands - answer in Telegram
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("help", help_command))
-
-    # on noncommand i.e message - echo the message on Telegram
     dispatcher.add_handler(MessageHandler(Filters.all & ~Filters.command, handle_photo))
 
-    # Start the Bot
     updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
 
 def load_dataset():
-    print("Loading dataset")
+    logging.info("Loading dataset")
     global dataset
-    dataset, _ = fetch_dataset()
+    dataset = fetch_dataset()
 
 
 def load_model():
-    print("Loading AE model")
+    logging.info("Loading AE model")
     global ae_model
     ae_model = Autoencoder((3, 48, 48), 256)
     ae_model.load_state_dict(torch.load("face_ae.pth"))
@@ -115,7 +105,7 @@ def load_model():
 
 
 def train_knn():
-    print("Training KNN")
+    logging.info("Training KNN")
     latent_codes = []
 
     to_tensor = torchvision.transforms.ToTensor()
@@ -135,4 +125,7 @@ def train_knn():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        logging.error("Exception occurred", exc_info=True)

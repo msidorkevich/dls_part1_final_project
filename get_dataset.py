@@ -1,59 +1,43 @@
-import numpy as np
+import logging
 import os
-from skimage.transform import resize
+
+import numpy as np
 import skimage.io
-import pandas as pd
+from skimage.transform import resize
 
 
-def fetch_dataset(attrs_name="lfw_attributes.txt",
-                  images_name="lfw-deepfunneled",
+def fetch_dataset(images_name="lfw-deepfunneled",
                   dx=80, dy=80,
                   dimx=48, dimy=48):
 
     # download if not exists
     if not os.path.exists(images_name):
-        print("images not found, downloading...")
+        logging.info("images not found, downloading...")
         os.system("wget http://vis-www.cs.umass.edu/lfw/lfw-deepfunneled.tgz -O tmp.tgz")
-        print("extracting...")
+        logging.info("extracting...")
         os.system("tar xvzf tmp.tgz")
         os.remove("tmp.tgz")
-        print("done")
+        logging.info("done extracting")
         assert os.path.exists(images_name)
 
-    if not os.path.exists(attrs_name):
-        print("attributes not found, downloading...")
-        os.system(f"wget http://www.cs.columbia.edu/CAVE/databases/pubfig/download/{attrs_name} --no-check-certificate")
-        print("done")
-
-    # read attrs
-    df_attrs = pd.read_csv("lfw_attributes.txt", sep='\t', skiprows=1,)
-    df_attrs = pd.DataFrame(df_attrs.iloc[:, :-1].values, columns=df_attrs.columns[1:])
-
     # read photos
-    photo_ids = []
+    logging.info("preparing photo paths")
+    photo_paths = []
     for dirpath, dirnames, filenames in os.walk(images_name):
         for fname in filenames:
             if fname.endswith(".jpg"):
                 fpath = os.path.join(dirpath, fname)
-                photo_id = fname[:-4].replace('_', ' ').split()
-                person_id = ' '.join(photo_id[:-1])
-                photo_number = int(photo_id[-1])
-                photo_ids.append({'person': person_id, 'imagenum': photo_number, 'photo_path': fpath})
+                photo_paths.append(fpath)
 
-    photo_ids = pd.DataFrame(photo_ids)
-
-    # mass-merge
-    # (photos now have same order as attributes)
-    df = pd.merge(df_attrs, photo_ids, on=('person', 'imagenum'))
-
-    assert len(df) == len(df_attrs), "lost some data when merging dataframes"
-
+    logging.info("reading photos")
     # image preprocessing
-    all_photos = df['photo_path'].apply(skimage.io.imread)\
-                                 .apply(lambda img: img[dy:-dy, dx:-dx])\
-                                 .apply(lambda img: resize(img, [dimx, dimy]))
+    images = []
+    for photo_path in photo_paths:
+        image = skimage.io.imread(photo_path)
+        image = image[dy:-dy, dx:-dx]
+        image = resize(image, [dimx, dimy])
+        images.append(image)
 
-    all_photos = np.stack(all_photos.values)
-    all_attrs = df.drop(["photo_path", "person", "imagenum"], axis=1)
+    all_photos = np.stack(images)
     
-    return all_photos, all_attrs
+    return all_photos
